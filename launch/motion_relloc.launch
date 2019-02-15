@@ -1,0 +1,54 @@
+<launch>
+    <arg name="robot_name"/>
+    <arg name="publish_rate" default="50"/>
+    <arg name="human_frame_id" default="human_footprint"/>
+    <arg name="tf_exp_time" default="60.0"/>
+
+    <!-- Whether to prefix robot-related tf frames or not. See $robot_ns for details -->
+    <arg name="use_robot_ns" default="true"/>
+    <!-- If $use_robot_ns is set, the parameter will be used to prefix robot-related
+         frames, e.g. 'odom'. Ex. 'footbot13' will produce 'footbot13/odom'.
+         If empty, the resulting frame will be set to robot's name from /markers_robots_map -->
+    <arg name="robot_ns" default=""/>
+    <!-- Frame which the human will be attached to -->
+    <arg name="robot_root_frame" default="odom"/>
+
+    <!-- Frame where pointing ray originates from, e.g. eyes or shoulder -->
+    <arg name="ray_origin_frame" default="eyes"/>
+    <!-- Frame that defines the direction of the pointing ray, e.g. pointer or myo1
+         The orientation is determined w.r.t. human_frame_id -->
+    <arg name="ray_direction_frame" default="pointer"/>
+    <!-- Set to true if direction frame is myo1 -->
+    <arg name="ray_inverse" default="false"/>
+
+    <!-- Interaction duration in seconds -->
+    <arg name="timewindow" default="6.0"/>
+    <!-- Sensor frequency -->
+    <arg name="freq" default="20.0"/>
+    <!-- Number of points to sample from the queue -->
+    <arg name="sample_size" default="60"/>
+    <!-- When residual falls below threshold the action succeeds -->
+    <arg name="residual_threshold_deg" default="3.0"/>
+
+    <node name="motion_relloc" type="motion_relloc_node.py" pkg="volaly_localization" required="true" output="screen">
+        <param name="robot_name" value="$(arg robot_name)"/>
+        <param name="publish_rate" type="int" value="$(arg publish_rate)"/>
+        <param name="human_frame_id" type="string" value="$(arg human_frame_id)"/>
+        <param name="tf_exp_time" type="double" value="$(arg tf_exp_time)"/>
+
+        <param name="use_robot_ns" type="bool" value="$(arg use_robot_ns)"/>
+        <param if="$(arg use_robot_ns)" name="robot_ns" type="string" value="$(arg robot_ns)"/>
+        <param name="robot_root_frame" type="string" value="$(arg robot_root_frame)"/>
+
+        <param name="ray_origin_frame" type="string" value="$(arg ray_origin_frame)"/>
+        <param name="ray_direction_frame" type="string" value="$(arg ray_direction_frame)"/>
+        <param name="ray_inverse" type="bool" value="$(arg ray_inverse)"/>
+
+        <param name="timewindow" type="double" value="$(arg timewindow)"/>
+        <param name="freq" type="double" value="$(arg freq)"/>
+        <param name="sample_size" type="int" value="$(arg sample_size)"/>
+        <param name="residual_threshold_deg" type="double" value="$(arg residual_threshold_deg)"/>
+
+        <param name="action_ns" type="string" value="/motion_relloc"/>
+    </node>
+</launch>
