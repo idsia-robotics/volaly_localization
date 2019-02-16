@@ -37,15 +37,15 @@ class MotionRellocNode:
         sec = rospy.get_param('~tf_exp_time', 90.0)
         self.tf_exp_time = rospy.Duration(sec)
 
-        self.human_frame = rospy.get_param('human_frame_id', 'human_footprint')
-        self.robot_root_frame = rospy.get_param('robot_root_frame', robot_name + '/odom')
+        self.human_frame = rospy.get_param('~human_frame_id', 'human_footprint')
+        self.robot_root_frame = rospy.get_param('~robot_root_frame', robot_name + '/odom')
         drone_goto_action_ns = rospy.get_param('~drone_goto_action_ns', '/' + robot_name + '/goto_action')
         drone_shape_action_ns = rospy.get_param('~drone_followpath_action_ns', '/' + robot_name + '/followshape_action')
         drone_followme_action_ns = rospy.get_param('~drone_followme_action_ns', '/' + robot_name + '/followme_action')
 
-        self.ray_origin_frame = rospy.get_param('ray_origin_frame', 'eyes')
-        self.ray_direction_frame = rospy.get_param('ray_direction_frame', 'pointer')
-        self.ray_inverse = rospy.get_param('ray_inverse', False)
+        self.ray_origin_frame = rospy.get_param('~ray_origin_frame', 'eyes')
+        self.ray_direction_frame = rospy.get_param('~ray_direction_frame', 'pointer')
+        self.ray_inverse = rospy.get_param('~ray_inverse', False)
 
         pose_topic = rospy.get_param('~robot_pose_topic', '/' + robot_name + '/odom/pose/pose')
         pose_topic_class, pose_real_topic, pose_eval_func = rostopic.get_topic_class(pose_topic)
