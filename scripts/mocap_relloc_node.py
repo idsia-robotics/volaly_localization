@@ -100,7 +100,7 @@ class MocapRellocNode:
         human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
 
         t = self.kdl_to_transform(human_f)
-        t.header = human_pose_msg.header.frame_id
+        t.header = self.human_pose_msg.header
         t.child_frame_id = self.human_frame
 
         self.cached_tf = t
