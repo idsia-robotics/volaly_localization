@@ -97,7 +97,11 @@ class MocapRellocNode:
         _,_,yaw = tmp_h_f.M.GetRPY()
         _,_,ray_yaw = tmp_ray_f.M.GetRPY()
 
-        human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+        ######### The bug that cost me a finger being cut by the drone blades #########################################
+        # human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+        ###############################################################################################################
+
+        human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
 
         t = self.kdl_to_transform(human_f)
         t.header = self.human_pose_msg.header
