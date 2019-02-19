@@ -36,13 +36,13 @@ class MocapRellocNode:
         self.robot_root_frame = rospy.get_param('~robot_root_frame', robot_name + '/odom')
 
         pointing_ray_topic = rospy.get_param('~pointing_ray_topic', 'pointing_ray')
-        self.sub_pointing_ray = rospy.Subsriber(pointing_ray_topic, PoseStamped, self.pointing_ray_cb)
+        self.sub_pointing_ray = rospy.Subscriber(pointing_ray_topic, PoseStamped, self.pointing_ray_cb)
         self.pointing_ray_msg = None
 
         self.ray_direction_frame = rospy.get_param('~ray_direction_frame', 'pointer')
 
         human_pose_topic = rospy.get_param('~human_pose_topic', '/optitrack/head')
-        self.sub_human_pose = rospy.Subsriber(human_pose_topic, PoseStamped, self.human_pose_cb)
+        self.sub_human_pose = rospy.Subscriber(human_pose_topic, PoseStamped, self.human_pose_cb)
         self.human_pose_msg = None
 
         self.reset_state()
@@ -51,7 +51,7 @@ class MocapRellocNode:
         self.tf_ls = tf2_ros.TransformListener(self.tf_buff)
         self.tf_br = tf2_ros.TransformBroadcaster()
 
-        self.mocap_relloc_server = actionlib.SimpleActionServer(action_ns + '/mocap_relloc_action', EmptyAction, self.execute_relloc, False)
+        self.mocap_relloc_server = actionlib.SimpleActionServer(action_ns + '/relloc_action', EmptyAction, self.execute_relloc, False)
         self.mocap_relloc_server.start()
 
     def kdl_to_transform(self, k):

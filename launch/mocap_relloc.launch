@@ -2,6 +2,7 @@
     <arg name="robot_name"/>
     <arg name="robot_odom_topic" default="/$(arg robot_name)/odom"/>
     <arg name="human_pose_topic" default="/optitrack/head"/>
+    <arg name="pointing_ray_topic" default="pointing_ray"/>
     <arg name="publish_rate" default="50"/>
     <arg name="human_frame_id" default="human_footprint"/>
     <arg name="tf_exp_time" default="60.0"/>
@@ -32,13 +33,14 @@
     <!-- When residual falls below threshold the action succeeds -->
     <arg name="residual_threshold_deg" default="3.0"/>
 
-    <node name="motion_relloc" type="motion_relloc_node.py" pkg="volaly_localization" required="true" output="screen">
+    <node name="mocap_relloc" type="mocap_relloc_node.py" pkg="volaly_localization" required="true" output="screen">
         <param name="robot_name" value="$(arg robot_name)"/>
         <param name="robot_pose_topic" value="$(arg robot_odom_topic)/pose/pose"/>
         <param name="publish_rate" type="int" value="$(arg publish_rate)"/>
         <param name="human_frame_id" type="string" value="$(arg human_frame_id)"/>
         <param name="tf_exp_time" type="double" value="$(arg tf_exp_time)"/>
 
+        <param name="pointing_ray_topic" type="string" value="$(arg pointing_ray_topic)"/>
         <param name="human_pose_topic" type="string" value="$(arg human_pose_topic)"/>
 
         <param name="use_robot_ns" type="bool" value="$(arg use_robot_ns)"/>
@@ -54,6 +56,6 @@
         <param name="sample_size" type="int" value="$(arg sample_size)"/>
         <param name="residual_threshold_deg" type="double" value="$(arg residual_threshold_deg)"/>
 
-        <param name="action_ns" type="string" value="/motion_relloc"/>
+        <param name="action_ns" type="string" value="/mocap_relloc"/>
     </node>
 </launch>
