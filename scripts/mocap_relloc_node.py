@@ -80,6 +80,10 @@ class MocapRellocNode:
 
         if not self.human_pose_msg or not self.pointing_ray_msg:
             self.mocap_relloc_server.preempt_request = True
+            if not self.human_pose_msg:
+                rospy.logerror('Cannot relloc: user\'s MOCAP pose is not known')
+            if not self.pointing_ray_msg:
+                rospy.logerror('Cannot relloc: pointing ray is not known')
             self.mocap_relloc_server.set_aborted()
             return
 
