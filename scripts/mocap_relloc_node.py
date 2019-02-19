@@ -3,6 +3,7 @@
 import collections
 import copy
 import threading
+import sys
 
 import numpy as np
 
@@ -31,6 +32,9 @@ class MocapRellocNode:
 
         sec = rospy.get_param('~tf_exp_time', 90.0)
         self.tf_exp_time = rospy.Duration(sec)
+
+        if self.tf_exp_time <= rospy.Duration(sys.float_info.epsilon):
+            rospy.logwarn("tf_exp_time is set to 0.0, the relloc transform will never expire!")
 
         self.human_frame = rospy.get_param('~human_frame_id', 'human_footprint')
         self.robot_root_frame = rospy.get_param('~robot_root_frame', robot_name + '/odom')
@@ -120,7 +124,10 @@ class MocapRellocNode:
             try:
                 now = rospy.Time.now()
                 if self.cached_tf:
-                    self.tf_expired = now > (self.cached_tf.header.stamp + self.tf_exp_time)
+                    if self.tf_exp_time > rospy.Duration(sys.float_info.epsilon):
+                        self.tf_expired = now > (self.cached_tf.header.stamp + self.tf_exp_time)
+                    else:
+                        self.tf_expired = False
 
                     if not self.tf_expired:
                         t = copy.deepcopy(self.cached_tf)
