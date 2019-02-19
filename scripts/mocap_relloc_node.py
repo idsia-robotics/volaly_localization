@@ -79,21 +79,14 @@ class MocapRellocNode:
     def pointing_ray_cb(self, msg):
         self.pointing_ray_msg = msg
 
-    def execute_relloc(self, goal):
-        loop_rate = rospy.Rate(10) # 50 Hz
-
+    def calculate_pose(self, ignore_heading = True):
         if not self.human_pose_msg or not self.pointing_ray_msg:
-            self.mocap_relloc_server.preempt_request = True
             if not self.human_pose_msg:
-                rospy.logerror('Cannot relloc: user\'s MOCAP pose is not known')
+                rospy.logerr('Cannot relloc: user\'s MOCAP pose is not known')
             if not self.pointing_ray_msg:
-                rospy.logerror('Cannot relloc: pointing ray is not known')
-            self.mocap_relloc_server.set_aborted()
-            return
+                rospy.logerr('Cannot relloc: pointing ray is not known')
 
-        if self.mocap_relloc_server.is_preempt_requested():
-            self.mocap_relloc_server.set_preempted()
-            rospy.logwarn('Relloc action has been preempted')
+            return None
 
         # Project human pose on the ground and adjust pointing ray
         tmp_h_f = tfc.fromMsg(self.human_pose_msg.pose)
@@ -105,17 +98,32 @@ class MocapRellocNode:
         # human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
         ###############################################################################################################
 
-        human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+        if ignore_heading:
+            human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, 0.0), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+        else:
+            human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
 
         t = self.kdl_to_transform(human_f)
         t.header = self.human_pose_msg.header
         t.child_frame_id = self.human_frame
 
+        return t
+
+    def execute_relloc(self, goal):
+        t = self.calculate_pose()
         self.cached_tf = t
 
-        # self.mocap_relloc_server.publish_feedback(feedback)
+        if not t:
+            self.mocap_relloc_server.preempt_request = True
+            # self.mocap_relloc_server.set_aborted(text = 'Residual error is too high: {}'.format(res_err))
+            self.mocap_relloc_server.set_aborted()
+            return
+
+        if self.mocap_relloc_server.is_preempt_requested():
+            self.mocap_relloc_server.set_preempted()
+            rospy.logwarn('Relloc action has been preempted')
+
         self.mocap_relloc_server.set_succeeded(result=EmptyResult())
-        # self.mocap_relloc_server.set_aborted(text = 'Residual error is too high: {}'.format(res_err))
 
     def run(self):
         loop_rate = rospy.Rate(self.publish_rate)
@@ -130,7 +138,8 @@ class MocapRellocNode:
                         self.tf_expired = False
 
                     if not self.tf_expired:
-                        t = copy.deepcopy(self.cached_tf)
+                        # t = copy.deepcopy(self.cached_tf)
+                        t = self.calculate_pose(ignore_heading = True)
                         # Update stamp to keep tf alive
                         t.header.stamp = now
                         self.tf_br.sendTransform(t)
