@@ -49,6 +49,8 @@ class MocapRellocNode:
         self.sub_human_pose = rospy.Subscriber(human_pose_topic, PoseStamped, self.human_pose_cb)
         self.human_pose_msg = None
 
+        self.cached_yaw = 0.0
+
         self.reset_state()
 
         self.tf_buff = tf2_ros.Buffer()
@@ -79,7 +81,7 @@ class MocapRellocNode:
     def pointing_ray_cb(self, msg):
         self.pointing_ray_msg = msg
 
-    def calculate_pose(self, ignore_heading = True):
+    def calculate_pose(self, ignore_heading = False):
         if not self.human_pose_msg or not self.pointing_ray_msg:
             if not self.human_pose_msg:
                 rospy.logerr('Cannot relloc: user\'s MOCAP pose is not known')
@@ -99,9 +101,10 @@ class MocapRellocNode:
         ###############################################################################################################
 
         if ignore_heading:
-            human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, 0.0), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+            human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, self.cached_yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
         else:
             human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
+            self.cached_yaw = yaw
 
         t = self.kdl_to_transform(human_f)
         t.header = self.human_pose_msg.header
