@@ -36,8 +36,11 @@ class MocapRellocNode:
         if self.tf_exp_time <= rospy.Duration(sys.float_info.epsilon):
             rospy.logwarn("tf_exp_time is set to 0.0, the relloc transform will never expire!")
 
+        self.mocap_frame = rospy.get_param('~mocap_frame', 'World')
+
         self.human_frame = rospy.get_param('~human_frame_id', 'human_footprint')
         self.robot_root_frame = rospy.get_param('~robot_root_frame', robot_name + '/odom')
+        self.robot_frame = rospy.get_param('~robot_frame', '/optitrack/' + robot_name)
 
         pointing_ray_topic = rospy.get_param('~pointing_ray_topic', 'pointing_ray')
         self.sub_pointing_ray = rospy.Subscriber(pointing_ray_topic, PoseStamped, self.pointing_ray_cb)
@@ -81,6 +84,25 @@ class MocapRellocNode:
     def pointing_ray_cb(self, msg):
         self.pointing_ray_msg = msg
 
+    def frame_from_tf(self, fixed_frame, target_frame):
+        if fixed_frame == target_frame:
+            return kdl.Frame.Identity()
+
+        try:
+            tf_frame = self.tf_buff.lookup_transform(fixed_frame, target_frame, rospy.Time())
+            dt = (rospy.Time.now() - tf_frame.header.stamp)
+            if  dt > rospy.Duration(5.0):
+                rospy.logwarn_throttle(10.0, 'Transformation [{}] -> [{}] is too old. Last seen {:.3f}s ago. Ignoring'
+                    .format(fixed_frame, target_frame, dt.to_sec()))
+                return None
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException), e:
+            rospy.logerr_throttle(10.0, e.message)
+            return None
+
+        kdl_frame = transform_to_kdl(tf_frame)
+
+        return kdl_frame
+
     def calculate_pose(self, ignore_heading = False):
         if not self.human_pose_msg or not self.pointing_ray_msg:
             if not self.human_pose_msg:
@@ -91,10 +113,20 @@ class MocapRellocNode:
             return None
 
         # Project human pose on the ground and adjust pointing ray
-        tmp_h_f = tfc.fromMsg(self.human_pose_msg.pose)
-        tmp_ray_f = tfc.fromMsg(self.pointing_ray_msg.pose)
-        _,_,yaw = tmp_h_f.M.GetRPY()
-        _,_,ray_yaw = tmp_ray_f.M.GetRPY()
+        # tmp_h_f = tfc.fromMsg(self.human_pose_msg.pose)
+        # tmp_ray_f = tfc.fromMsg(self.pointing_ray_msg.pose)
+        # _,_,yaw = tmp_h_f.M.GetRPY()
+        # _,_,ray_yaw = tmp_ray_f.M.GetRPY()
+
+        tmp_h_f = self.frame_from_tf(self.mocap_frame, self.human_frame)
+        tmp_robot_f = self.frame_from_tf(self.mocap_frame, self.robot_frame)
+
+        dir_v = tmp_robot_f.p - tmp_h_f.p # from human to robot
+
+        u = kdl.Vector(dir_v.x(), dir_v.y(), dir_v.z())
+        u.Normalize()
+
+        yaw = kdl.Rotation.RPY(0.0, 0.0, math.atan2(u.y(), u.x()))
 
         ######### The bug that cost me a finger being cut by the drone blades #########################################
         # human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
