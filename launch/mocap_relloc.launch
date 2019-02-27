@@ -2,6 +2,7 @@
     <arg name="robot_name"/>
     <arg name="robot_odom_topic" default="/$(arg robot_name)/odom"/>
     <arg name="human_pose_topic" default="/optitrack/head"/>
+    <arg name="robot_pose_topic" default="/optitrack/$(arg robot_name)"/>
     <arg name="pointing_ray_topic" default="pointing_ray"/>
     <arg name="publish_rate" default="50"/>
     <arg name="human_frame_id" default="human_footprint"/>
@@ -42,6 +43,7 @@
 
         <param name="pointing_ray_topic" type="string" value="$(arg pointing_ray_topic)"/>
         <param name="human_pose_topic" type="string" value="$(arg human_pose_topic)"/>
+        <param name="robot_pose_topic" type="string" value="$(arg robot_pose_topic)"/>
 
         <param name="use_robot_ns" type="bool" value="$(arg use_robot_ns)"/>
         <param if="$(arg use_robot_ns)" name="robot_ns" type="string" value="$(arg robot_ns)"/>

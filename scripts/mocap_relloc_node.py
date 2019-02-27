@@ -40,7 +40,6 @@ class MocapRellocNode:
 
         self.human_frame = rospy.get_param('~human_frame_id', 'human_footprint')
         self.robot_root_frame = rospy.get_param('~robot_root_frame', robot_name + '/odom')
-        self.robot_frame = rospy.get_param('~robot_frame', '/optitrack/' + robot_name)
 
         pointing_ray_topic = rospy.get_param('~pointing_ray_topic', 'pointing_ray')
         self.sub_pointing_ray = rospy.Subscriber(pointing_ray_topic, PoseStamped, self.pointing_ray_cb)
@@ -51,6 +50,10 @@ class MocapRellocNode:
         human_pose_topic = rospy.get_param('~human_pose_topic', '/optitrack/head')
         self.sub_human_pose = rospy.Subscriber(human_pose_topic, PoseStamped, self.human_pose_cb)
         self.human_pose_msg = None
+
+        robot_pose_topic = rospy.get_param('~robot_pose_topic', '/optitrack/' + robot_name)
+        self.sub_robot_pose = rospy.Subscriber(robot_pose_topic, PoseStamped, self.robot_pose_cb)
+        self.robot_pose_msg = None
 
         self.cached_yaw = 0.0
 
@@ -81,6 +84,9 @@ class MocapRellocNode:
     def human_pose_cb(self, msg):
         self.human_pose_msg = msg
 
+    def robot_pose_cb(self, msg):
+        self.robot_pose_msg = msg
+
     def pointing_ray_cb(self, msg):
         self.pointing_ray_msg = msg
 
@@ -104,11 +110,13 @@ class MocapRellocNode:
         return kdl_frame
 
     def calculate_pose(self, ignore_heading = False):
-        if not self.human_pose_msg or not self.pointing_ray_msg:
+        if not self.human_pose_msg or not self.pointing_ray_msg or not self.robot_pose_msg:
             if not self.human_pose_msg:
                 rospy.logerr('Cannot relloc: user\'s MOCAP pose is not known')
             if not self.pointing_ray_msg:
                 rospy.logerr('Cannot relloc: pointing ray is not known')
+            if not self.robot_pose_msg:
+                rospy.logerr('Cannot relloc: robot MOCAP pose is not known')
 
             return None
 
@@ -118,15 +126,15 @@ class MocapRellocNode:
         # _,_,yaw = tmp_h_f.M.GetRPY()
         # _,_,ray_yaw = tmp_ray_f.M.GetRPY()
 
-        tmp_h_f = self.frame_from_tf(self.mocap_frame, self.human_frame)
-        tmp_robot_f = self.frame_from_tf(self.mocap_frame, self.robot_frame)
+        tmp_h_f = tfc.fromMsg(self.human_pose_msg.pose)
+        tmp_robot_f = tfc.fromMsg(self.robot_pose_msg.pose)
 
         dir_v = tmp_robot_f.p - tmp_h_f.p # from human to robot
 
         u = kdl.Vector(dir_v.x(), dir_v.y(), dir_v.z())
         u.Normalize()
 
-        yaw = kdl.Rotation.RPY(0.0, 0.0, math.atan2(u.y(), u.x()))
+        yaw = np.math.atan2(u.y(), u.x())
 
         ######### The bug that cost me a finger being cut by the drone blades #########################################
         # human_f = kdl.Frame(kdl.Rotation.RPY(0.0, 0.0, ray_yaw - yaw), kdl.Vector(tmp_h_f.p.x(), tmp_h_f.p.y(), 0.0))
